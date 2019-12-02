@@ -1,0 +1,25 @@
+syntax = "proto2";
+
+package lattice;
+
+
+message LatticeNetwork {
+	required string type = 1;
+	required int32 num_calibrators = 2;
+	required int32 num_lattices = 3;
+	required int32 lattice_size = 4;
+	required int32 lattice_rank = 5;
+
+	repeated Calibrator calibrators = 6;
+	repeated Lattice lattices = 7;
+}
+
+message Calibrator {
+	required int32 num_keypoints = 1;
+	repeated int32 keypoints = 2;
+}
+
+message Lattice {
+	required int32 num_params = 1;
+	repeated int32 parameters = 2;
+}

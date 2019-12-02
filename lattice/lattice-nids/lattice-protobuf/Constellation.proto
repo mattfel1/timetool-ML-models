@@ -1,0 +1,56 @@
+// Constellation protobuf format courtesy of Nathan
+
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+
+message IntVector {
+    repeated int64 values = 1;
+}
+
+message StringVector {
+    repeated string values = 1;
+}
+
+message FloatVector {
+    repeated double values = 1;
+}
+
+
+message Parameter {
+    string name = 1;
+    repeated google.protobuf.Any values = 2;
+}
+
+message DataFormat {
+    string name = 1;
+    map<string, Parameter> parameters = 2;
+}
+
+message Node {
+    string name = 1;
+
+    map<string, Parameter> parameters = 2;
+
+    repeated DataFormat inputTypes = 3;
+
+    repeated DataFormat outputTypes = 4;
+}
+
+message Edge {
+    int64 inputNodeId = 1;
+
+    // For example, f(x, y, z) would have y be index 1.
+    int64 inputParameterIndex = 2;
+
+    int64 outputNodeId = 3;
+
+    // In the case of (a, b) = f(x, y, z), b would be output param index 1.
+    int64 outputParameterIndex = 4;
+}
+
+message ProgramGraph {
+    string name = 1;
+    map<int64, Node> nodes = 2;
+    repeated Edge edges = 3;
+}
