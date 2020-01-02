@@ -1,3 +1,4 @@
+#include <sstream>
 #include <iostream>
 #include <math.h>
 #include <fstream>
@@ -6,91 +7,100 @@
 #include <string>
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
+#include <sys/types.h>
+#include <dirent.h>
+typedef std::vector<std::string> stringvec;
+using namespace std;
 
-/*
- * A class to read data from a csv file.
- */
-class CSVReader
+
+void build_kernel(float sig, int window_size, float* kernel) 
 {
-	std::string fileName;
-	std::string delimeter;
-
-public:
-	CSVReader(std::string filename, std::string delm = " ") :
-			fileName(filename), delimeter(delm)
-	{ }
-
-	// Function to fetch data from a CSV File
-	std::vector<std::vector<std::string> > getData();
-};
-
-/*
-* Parses through csv file line by line and returns the data
-* in vector of vector of strings.
-*/
-std::vector<std::vector<std::string> > CSVReader::getData()
-{
-	std::ifstream file(fileName);
-
-	std::vector<std::vector<std::string> > dataList;
-
-	std::string line = "";
-	// Iterate through each line and split the content using delimeter
-	while (getline(file, line))
-	{
-		std::vector<std::string> vec;
-		boost::algorithm::split(vec, line, boost::is_any_of(delimeter));
-		dataList.push_back(vec);
-	}
-	// Close the File
-	file.close();
-
-	return dataList;
-}
-void build_kernel(float sig, int window, float* kernel) 
-{
-	float data[window];
+	float data[window_size];
 	float sum = 0;
-	for (int i = 0; i < window; i++) 
+	for (int i = 0; i < window_size; i++) 
 	{
-		float t = i - (window-1)/2;
+		float t = i - (window_size-1)/2;
 		float exp = -pow(t,2)/2/pow(sig,2);
 		float coef = -t/pow(sig,3)/sqrt(2*M_PI);
 		data[i] = coef * pow(M_E,exp);
 		sum = sum + abs(data[i]);
 	}
 	float factor = 1.0/sum;
-	for (int i = 0; i < window; i++)
+	for (int i = 0; i < window_size; i++)
 	{
 		kernel[i] = data[i]*factor;
 	}
 }
 
-int main()
+// take from http://stackoverflow.com/a/236803/248823
+void split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss;
+    ss.str(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+}
+
+void processFibermap(std::string file, vector<int> &keys, vector<float> &delays)
 {
-	// Create out file
-	std::ofstream myfile;
-	myfile.open ("processed.csv");
-	
-	// Set up kernel
-	int window_size = 40;
-	float sig = window_size/8;
-	float kernel[window_size];
-	build_kernel(sig, window_size, kernel);
+    // Create reader
+    std::ifstream infile (file);
+    std::string line;
 
-	// Creating an object of CSVWriter
-	std::string file = std::string(getenv("DATA_FS")) + "/xppc00117_r136_refsub_ipm4_del3.csv";
-	CSVReader reader(file);
-	
-	// Get the data from CSV File
-	std::vector<std::vector<std::string> > dataList = reader.getData();
+    // Dump first 2 lines
+    for (int i = 0; i < 2; i++) {
+    	std::getline(infile, line);
+    }
 
-	std::cout << "| Row    | Rising Idx |  Falling Idx |    Volume |    Rising V |    Falling V |" << std::endl;
+    while (std::getline(infile, line))
+    {
+        vector<string> row_values;
+        split(line, '\t', row_values);
+        keys.push_back(stoi(row_values[0]));
+        delays.push_back(stof(row_values[6]));
+    }
+
+}
+
+float lookupDelay(std::vector<int> &keys, std::vector<float> &delays, int row)
+{
+	// No indirection
+	return delays[row];
+
+	// // With indirection
+	// std::vector<int>::iterator it = std::find(keys.begin(), keys.end(), row);
+	// int index = std::distance(keys.begin(), it);
+	// return delays[index];
+}
+
+void processImage(std::string file, std::ofstream& outfile, float sig, int window_size, float* kernel)
+{
+	// Collect keys/delays from fibermap
+	vector<float> delays;
+	vector<int> keys;
+	std::string fibermap_file = file;
+	fibermap_file.replace(fibermap_file.find("interference"),string("interference").length(),"fibermap");
+	processFibermap(getenv("DATA_FS") + fibermap_file, keys, delays);
+
+    // Create reader
+    std::ifstream infile (getenv("DATA_FS") + file);
+    std::string line;
+
+    // Dump first 7 lines
+    for (int i = 0; i < 7; i++) {
+    	std::getline(infile, line);
+    }
+
+	std::cout << "| Row    | Rising Idx |  Falling Idx |    Volume |    Rising V |    Falling V |  Delay  |" << std::endl;
 	// Print the content of row by row on screen
 	int row = 0;
-	for(std::vector<std::string> vec : dataList)
-	{
-		if (row < 1000) {
+    while (std::getline(infile, line))
+    {
+        vector<string> row_values;
+        split(line, ',', row_values);
+
+
 		int best_rising_idx = 0;
 		int best_falling_idx = 0;
 		float best_rising_slope = 0;
@@ -105,7 +115,7 @@ int main()
 		int rising_reset_cnt = 999;
 		int falling_reset_cnt = 999;
 		std::vector<int32_t> reset_sr(reset_delay_interval, 0);
-		for(std::string data : vec)
+        for (auto data: row_values) 
 		{
 			// Shift in
 			for (int i = window_size-1; i > 0; i--) { window[i] = window[i-1]; }
@@ -142,12 +152,44 @@ int main()
 			rising_reset_cnt = rising_reset_cnt + 1;
 			falling_reset_cnt = falling_reset_cnt + 1;
 		}
-		std::cout << "\t" << row << "\t" << best_rising_idx << "\t" << best_falling_idx << "\t" << (acc_after_rising - acc_after_falling) << "\t"  << best_rising_slope << "\t" << best_falling_slope << std::endl;
-		myfile << row << "," << best_rising_idx << "," << best_falling_idx << "," << (acc_after_rising - acc_after_falling) << ","  << best_rising_slope << "," << best_falling_slope << std::endl;
-		}
+		float row_delay = lookupDelay(keys, delays, row);
+		std::cout << "\t" << row << "\t" << best_rising_idx << "\t" << best_falling_idx << "\t" << (acc_after_rising - acc_after_falling) << "\t"  << best_rising_slope << "\t" << best_falling_slope << "\t" << row_delay << std::endl;
+		outfile << row << "," << best_rising_idx << "," << best_falling_idx << "," << (acc_after_rising - acc_after_falling) << ","  << best_rising_slope << "," << best_falling_slope << "," << row_delay << std::endl;
 		row = row + 1;
+    }
+
+}
+
+int main()
+{
+	// Create out file
+	std::ofstream outfile;
+	outfile.open ("processed.csv");
+	
+	// Set up kernel
+	int window_size = 40;
+	float sig = window_size/8;
+	float kernel[window_size];
+	build_kernel(sig, window_size, kernel);
+
+	// Get list of files to process
+    std::string path = std::string(getenv("DATA_FS"));
+    std::vector<std::string> images;
+    DIR* dirp = opendir(path.c_str());
+    struct dirent * dp;
+    while ((dp = readdir(dirp)) != NULL) {
+    	std::string filename = (dp->d_name);
+        if (filename.find("interference") != std::string::npos) {
+        	images.push_back(filename);
+        }
+    }
+    closedir(dirp);
+
+	for ( auto&& item : images) {
+	   processImage(item, outfile, sig, window_size, kernel);
 	}
-	myfile.close();
+	outfile.close();
+
 	return 0;
 
 }
