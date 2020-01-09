@@ -153,6 +153,7 @@ void processImage(std::string file, std::ofstream& outfile, float sig, int windo
 			falling_reset_cnt = falling_reset_cnt + 1;
 		}
 		float row_delay = lookupDelay(keys, delays, row);
+		float row_key = keys[row];
 		std::cout << "\t" << fileId << "\t" << row << "\t" << best_rising_idx << "\t" << best_falling_idx << "\t" << (acc_after_rising - acc_after_falling) << "\t"  << best_rising_slope << "\t" << best_falling_slope << "\t" << row_delay << std::endl;
 		outfile << fileId << "," << row << "," << best_rising_idx << "," << best_falling_idx << "," << (acc_after_rising - acc_after_falling) << ","  << best_rising_slope << "," << best_falling_slope << "," << row_delay << std::endl;
 		row = row + 1;
@@ -164,6 +165,7 @@ int main()
 {
 	// Create out file
 	std::ofstream outfile;
+	// outfile.open ("processed_baby.csv");
 	outfile.open ("processed.csv");
 	
 	// Set up kernel
