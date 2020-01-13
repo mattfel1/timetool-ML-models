@@ -82,6 +82,7 @@ void processImage(std::string file, std::ofstream& outfile, float sig, int windo
 	std::string fibermap_file = file;
 	fibermap_file.replace(fibermap_file.find("interference"),string("interference").length(),"fibermap");
 	std::string fileId(file.substr(file.rfind(".") + 1));
+	std::cout << fileId << std::endl;
 	processFibermap(getenv("DATA_FS") + fibermap_file, keys, delays);
 
     // Create reader
@@ -93,17 +94,20 @@ void processImage(std::string file, std::ofstream& outfile, float sig, int windo
     	std::getline(infile, line);
     }
 
-	std::cout << "| File ID    | Row    | Rising Idx |  Falling Idx |    Volume |    Rising V |    Falling V |  Delay  |" << std::endl;
+	// std::cout << "| File ID    | Row    | Rising Idx |  Falling Idx |    Volume |    Rising V |    Falling V |     First V |    Last V |    Delay  |" << std::endl;
 	// Print the content of row by row on screen
 	int row = 0;
     while (std::getline(infile, line))
     {
         vector<string> row_values;
-        split(line, ',', row_values);
+        // split(line, ',', row_values);
+        split(line, '\t', row_values);
 
 
 		int best_rising_idx = 0;
 		int best_falling_idx = 0;
+		float firstV = 0;
+		float lastV = 0;
 		float best_rising_slope = 0;
 		float best_falling_slope = 0;
 		int32_t acc_after_rising = 0;
@@ -119,6 +123,8 @@ void processImage(std::string file, std::ofstream& outfile, float sig, int windo
         for (auto data: row_values) 
 		{
 			// Shift in
+			if (col == 0) firstV = std::stoi(data);
+			if (col == row_values.size()-1) lastV = std::stoi(data);
 			for (int i = window_size-1; i > 0; i--) { window[i] = window[i-1]; }
 			window[0] = std::stoi(data);
 			if (rising_reset_cnt > reset_delay_interval) acc_after_rising = acc_after_rising + std::stoi(data);
@@ -154,8 +160,8 @@ void processImage(std::string file, std::ofstream& outfile, float sig, int windo
 		}
 		float row_delay = lookupDelay(keys, delays, row);
 		float row_key = keys[row];
-		std::cout << "\t" << fileId << "\t" << row << "\t" << best_rising_idx << "\t" << best_falling_idx << "\t" << (acc_after_rising - acc_after_falling) << "\t"  << best_rising_slope << "\t" << best_falling_slope << "\t" << row_delay << std::endl;
-		outfile << fileId << "," << row << "," << best_rising_idx << "," << best_falling_idx << "," << (acc_after_rising - acc_after_falling) << ","  << best_rising_slope << "," << best_falling_slope << "," << row_delay << std::endl;
+		//std::cout << "\t" << fileId << "\t" << row << "\t" << best_rising_idx << "\t" << best_falling_idx << "\t" << (acc_after_rising - acc_after_falling) << "\t"  << best_rising_slope << "\t" << best_falling_slope << "\t" << firstV << "\t" << lastV << "\t" << row_delay << std::endl;
+		outfile << fileId << "," << row << "," << best_rising_idx << "," << best_falling_idx << "," << (acc_after_rising - acc_after_falling) << ","  << best_rising_slope << "," << best_falling_slope << "," << firstV << "," << lastV << "," << row_delay << std::endl;
 		row = row + 1;
     }
 
