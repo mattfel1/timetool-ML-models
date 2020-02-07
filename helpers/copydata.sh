@@ -3,7 +3,7 @@
 
 files=()
 ctr=0
-for i in {95001..99999}
+for i in {1..99999}
 do
    files+=("/u1/coffee/2dtimetool_simulation_data/raw/chirp-2000_interferedelay1650_photonen6.0_carriertagdiamond_nfibers109_netalon1_1.00_1.00_fibermap.out.$i")
    files+=("/u1/coffee/2dtimetool_simulation_data/raw/chirp-2000_interferedelay1650_photonen6.0_carriertagdiamond_nfibers109_netalon1_1.00_1.00_interference.out.$i")
@@ -17,6 +17,4 @@ do
    fi
 
 done
-
-tar -cjf /u1/mattfel/zips/chunk_$i.tar.bz "${files[@]}"
 
