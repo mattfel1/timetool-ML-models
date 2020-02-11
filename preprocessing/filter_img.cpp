@@ -100,8 +100,8 @@ void processImage(std::string file, std::ofstream& outfile, float sig, int windo
     while (std::getline(infile, line))
     {
         vector<string> row_values;
-        // split(line, ',', row_values);
-        split(line, '\t', row_values);
+        split(line, ',', row_values);
+        // split(line, '\t', row_values);
 
 
 		int best_rising_idx = 0;
@@ -142,13 +142,13 @@ void processImage(std::string file, std::ofstream& outfile, float sig, int windo
 			float mac = 0;
 			for (int i = 0; i < window_size; i++) { mac = mac + window[i] * kernel[i]; }
 			// Catch rising/falling edges
-			if (mac > best_rising_slope && col > window_size-1) {
+			if (mac > best_rising_slope && col > window_size-1 && window[window_size-1] < 15) {
 				best_rising_idx = col;
 				acc_after_rising = 0;
 				best_rising_slope = mac;
 				rising_reset_cnt = 0;
 			}
-			if (mac < best_falling_slope && col > window_size-1) {
+			if (mac < best_falling_slope && col > window_size-1 && window[0] < 15) {
 				best_falling_idx = col;
 				acc_after_falling = 0;
 				best_falling_slope = mac;
