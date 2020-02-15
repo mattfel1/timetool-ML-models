@@ -5,10 +5,10 @@ import pandas as pd
 matplotlib.use('tkagg')
 import sys
 
+print("Args are: fileId, plotType (heat or line), comma-separated rows (for line only)")
+
 fileId = int(sys.argv[1])
 plotType = sys.argv[2]
-
-print("Args are: fileId, plotType (heat or line), comma-separated rows (for line only)")
 
 if (plotType == 'line'):
         rows = [int(x) for x in sys.argv[3].split(',')]
