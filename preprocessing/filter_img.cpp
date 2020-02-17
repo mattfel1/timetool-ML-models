@@ -112,6 +112,7 @@ void processImage(std::string file, std::ofstream& outfile, float sig, int windo
 		float best_falling_slope = 0;
 		int32_t acc_after_rising = 0;
 		int32_t acc_after_falling = 0;
+		int32_t noise_floor = 15;
 
 		std::vector<int32_t> window(window_size,0);
 		int col = 0;
@@ -142,13 +143,13 @@ void processImage(std::string file, std::ofstream& outfile, float sig, int windo
 			float mac = 0;
 			for (int i = 0; i < window_size; i++) { mac = mac + window[i] * kernel[i]; }
 			// Catch rising/falling edges
-			if (mac > best_rising_slope && col > window_size-1 && window[window_size-1] < 15) {
+			if (mac > best_rising_slope && col > window_size-1 && window[window_size-1] < noise_floor) {
 				best_rising_idx = col;
 				acc_after_rising = 0;
 				best_rising_slope = mac;
 				rising_reset_cnt = 0;
 			}
-			if (mac < best_falling_slope && col > window_size-1 && window[0] < 15) {
+			if (mac < best_falling_slope && col > window_size-1 && window[0] < noise_floor) {
 				best_falling_idx = col;
 				acc_after_falling = 0;
 				best_falling_slope = mac;
@@ -172,7 +173,7 @@ int main()
 	// Create out file
 	std::ofstream outfile;
 	// outfile.open ("processed_baby.csv");
-	outfile.open ("processed.csv");
+	outfile.open ("processed_floor.csv");
 	
 	// Set up kernel
 	int window_size = 40;
@@ -187,7 +188,7 @@ int main()
     struct dirent * dp;
     while ((dp = readdir(dirp)) != NULL) {
     	std::string filename = (dp->d_name);
-        if (filename.find("interference") != std::string::npos) {
+        if (filename.find("interferedelay1650_photonen6.0_carriertagdiamond_nfibers109_netalon1_1.00_1.00_interference") != std::string::npos) {
         	images.push_back(filename);
         }
     }
