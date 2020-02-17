@@ -100,12 +100,12 @@ void processImage(std::string file, std::ofstream& outfile, float sig, int windo
     while (std::getline(infile, line))
     {
         vector<string> row_values;
-        split(line, ',', row_values);
-        // split(line, '\t', row_values);
+        // split(line, ',', row_values); // For local
+        split(line, '\t', row_values); // For pskevin
 
 
 		int best_rising_idx = 0;
-		int best_falling_idx = 0;
+		int best_falling_idx = 1023;
 		float firstV = 0;
 		float lastV = 0;
 		float best_rising_slope = 0;
